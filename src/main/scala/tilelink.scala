@@ -9,6 +9,11 @@ import cde.{Parameters, Field}
 case object TLId extends Field[String]
 case class TLKey(id: String) extends Field[TileLinkParameters]
 
+case object UseTileLinkBuffer extends Field[Boolean]
+case object InsideTileLinkBuffer extends Field[Boolean]
+case object ClkCrossing extends Field[Boolean]
+case object TileLinkBufferEntries extends Field[Int]
+
 /** Parameters exposed to the top-level design, set based on 
   * external requirements or design space exploration
   *
@@ -1022,6 +1027,7 @@ class ClientTileLinkEnqueuer(depths: TileLinkDepths)(implicit p: Parameters) ext
   io.inner.probe   <> (if(depths.prb > 0) Queue(io.outer.probe,   depths.prb) else io.outer.probe)
   io.outer.release <> (if(depths.rel > 0) Queue(io.inner.release, depths.rel) else io.inner.release)
   io.inner.grant   <> (if(depths.gnt > 0) Queue(io.outer.grant,   depths.gnt) else io.outer.grant)
+  io.outer.finish  <> (if(depths.fin > 0) Queue(io.inner.finish,  depths.fin) else io.inner.finish)
 }
 
 object ClientTileLinkEnqueuer {
@@ -1032,6 +1038,29 @@ object ClientTileLinkEnqueuer {
   }
   def apply(in: ClientTileLinkIO, depth: Int)(implicit p: Parameters): ClientTileLinkIO = {
     apply(in, TileLinkDepths(depth, depth, depth, depth, depth))
+  }
+}
+
+case class UncachedTileLinkDepths(acq: Int, gnt: Int)
+
+class ClientUncachedTileLinkEnqueuer(depths: UncachedTileLinkDepths)(implicit p: Parameters) extends Module {
+  val io = new Bundle {
+    val inner = new ClientUncachedTileLinkIO().flip
+    val outer = new ClientUncachedTileLinkIO
+  }
+
+  io.outer.acquire <> (if(depths.acq > 0) Queue(io.inner.acquire, depths.acq) else io.inner.acquire)
+  io.inner.grant   <> (if(depths.gnt > 0) Queue(io.outer.grant,   depths.gnt) else io.outer.grant)
+}
+
+object ClientUncachedTileLinkEnqueuer {
+  def apply(in: ClientUncachedTileLinkIO, depths: UncachedTileLinkDepths)(implicit p: Parameters): ClientUncachedTileLinkIO = {
+    val t = Module(new ClientUncachedTileLinkEnqueuer(depths))
+    t.io.inner <> in
+    t.io.outer
+  }
+  def apply(in: ClientUncachedTileLinkIO, depth: Int)(implicit p: Parameters): ClientUncachedTileLinkIO = {
+    apply(in, UncachedTileLinkDepths(depth, depth))
   }
 }
 
