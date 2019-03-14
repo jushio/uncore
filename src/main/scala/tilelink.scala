@@ -9,6 +9,7 @@ import cde.{Parameters, Field}
 case object TLId extends Field[String]
 case class TLKey(id: String) extends Field[TileLinkParameters]
 
+case object UseTileLinkBufferInTile extends Field[Boolean]
 case object UseTileLinkBuffer extends Field[Boolean]
 case object InsideTileLinkBuffer extends Field[Boolean]
 case object ClkCrossing extends Field[Boolean]
